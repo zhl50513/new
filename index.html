@@ -1,12 +1,30 @@
-<!DOCTYPE html>
-<html lang="zh">
-<head>
-    <meta charset="UTF-8">
-    <title>OKD test file</title>
-</head>
-<body>
-Hello world!
-</body>
-</html>
+node(){
+        stage('git checkout'){
+        checkout([$class: 'GitSCM', branches: [[name: '${branch}']], doGenerateSubmoduleConfigurations: false, extensions: [], submoduleCfg: [], userRemoteConfigs: [[url: 'https://github.com/zhl50513/solo.git']]])
+        } 
+        stage('maveb build'){
+        sh '''export JAVA_HOME=/usr/java/jdk1.8.0_201 
+         /usr/maven3.6/bin/mvn clean package -Dmaven.test.skip=true'''
+        }
+        stage('deploy'){
+        sh '''
+        JENKINS_NODE_COOKIE=dontkillme
+        export JAVA_HOME=/usr/java/jdk1.8.0_201
+        TOMCAT_NAME=tomcat 
+        TOMCAT_HOME=/usr/$TOMCAT_NAME 
+        WWWROOT=$TOMCAT_HOME/webapps/ROOT
+        
+        if [ -d $WWWROOT ]; then
+                mv $WWWROOT /data/backup/${TOMCAT_NAME}-$(date +"%F_%T")
+        fi
+        unzip ${WORKSPACE}/target/*.war -d $WWWROOT  
+        PID=$(ps -ef | grep $TOMCAT_NAME | egrep -v "grep|$$" |awk \'{print $2}\')    
+        [ -n "$PID" ] && kill -9 $PID  
+         /bin/bash $TOMCAT_HOME/bin/startup.sh'''
+}
+        stage('test'){
+        //      sh "curl http://test.solo.com/status.html"
+        }
+}
 
 
